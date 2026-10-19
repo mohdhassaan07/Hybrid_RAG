@@ -60,3 +60,5 @@ def chunk_docs(docs):
 
     return fixed_size_chunks, markdown_chunks
 
+
+

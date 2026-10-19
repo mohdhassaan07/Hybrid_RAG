@@ -14,6 +14,7 @@ from document_loader import load_document
 load_dotenv()
 
 
+embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2-preview")
 def build_qdrant_index(chunks, embeddings, collection_name="hybrid_rag", url="http://localhost:6333"):
     """Build or update the dense Qdrant vector store with explicit chunk IDs."""
     ids = [chunk.id for chunk in chunks]
@@ -35,8 +36,30 @@ def build_bm25_index(chunks, save_path: Path | None = None):
     return bm25_retriever
 
 
+SIMILARITY_THRESHOLD = 0.95
+def drop_near_duplicates(chunks, vector_store, embeddings):
+    accepted = []
+
+    for chunk in chunks:
+        vector = embeddings.embed_query(chunk.page_content)
+
+        # k=1 is enough: only the closest existing chunk matters.
+        matches = vector_store.similarity_search_with_score_by_vector(
+        embedding=vector,
+        k=1,
+        )
+
+        if matches and matches[0][1] > 0.95:
+            closest_chunk, score = matches[0]
+            print(f"Skipping near-duplicate; cosine similarity={score:.3f}")
+            continue
+
+    accepted.append(chunk)
+
+    return accepted
+
 if __name__ == "__main__":
-    pdf_path = Path(__file__).parent.parent / "six_projects-1-8.pdf"
+    pdf_path = Path(__file__).parent.parent / "six_projects-2.pdf"
     bm25_save_path = Path(__file__).parent.parent / "bm25_index.pkl"
 
     # 1. Load document
@@ -45,7 +68,13 @@ if __name__ == "__main__":
     # 2. Chunk documents
     fixed_size_chunks, markdown_chunks = chunk_docs(docs)
     all_chunks = fixed_size_chunks + markdown_chunks
+    existing_store = QdrantVectorStore.from_existing_collection(
+    collection_name="hybrid_rag",
+    embedding=embeddings,
+    url="http://localhost:6333",
+    )
 
+    all_chunks = drop_near_duplicates(all_chunks, existing_store, embeddings)
     # 3. Assign deterministic unique IDs so dense and sparse indexes stay in sync
     for idx, chunk in enumerate(all_chunks):
         chunk_id = str(uuid.uuid5(
@@ -55,7 +84,6 @@ if __name__ == "__main__":
         chunk.id = chunk_id
         chunk.metadata["id"] = chunk_id
 
-    embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2-preview")
 
     print(f"Indexing {len(all_chunks)} chunks into Qdrant and BM25 concurrently...")
 
