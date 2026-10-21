@@ -59,7 +59,7 @@ def drop_near_duplicates(chunks, vector_store, embeddings):
     return accepted
 
 if __name__ == "__main__":
-    pdf_path = Path(__file__).parent.parent / "six_projects-2.pdf"
+    pdf_path = Path(__file__).parent.parent / "six_projects-1-8.pdf"
     bm25_save_path = Path(__file__).parent.parent / "bm25_index.pkl"
 
     # 1. Load document
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     url="http://localhost:6333",
     )
 
-    all_chunks = drop_near_duplicates(all_chunks, existing_store, embeddings)
+    # all_chunks = drop_near_duplicates(all_chunks, existing_store, embeddings)
     # 3. Assign deterministic unique IDs so dense and sparse indexes stay in sync
     for idx, chunk in enumerate(all_chunks):
         chunk_id = str(uuid.uuid5(
@@ -89,10 +89,10 @@ if __name__ == "__main__":
 
     # 4. Build both indexes in parallel
     with ThreadPoolExecutor(max_workers=2) as executor:
-        qdrant_future = executor.submit(build_qdrant_index, all_chunks, embeddings)
+        # qdrant_future = executor.submit(build_qdrant_index, all_chunks, embeddings)
         bm25_future = executor.submit(build_bm25_index, all_chunks, bm25_save_path)
 
-        vector_store = qdrant_future.result()
+        # vector_store = qdrant_future.result()
         bm25_retriever = bm25_future.result()
 
     print("Vector store and BM25 index built in parallel and synchronized successfully!")
