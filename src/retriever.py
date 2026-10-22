@@ -7,6 +7,7 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 from rank_bm25 import BM25Okapi
 from groq import Groq
+import json
 load_dotenv()
 embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2-preview")
 
@@ -168,14 +169,48 @@ def cross_encoder_reranker(query, chunks):
             doc.metadata['relevence_score'] = score
             reranked_docs.append(doc)
     return reranked_docs
-        
-        
+
+
 if __name__ == "__main__":
     query = input("Enter query: ")
     hybrid_results = hybrid_retriever(query)
     reranked_results = cross_encoder_reranker(query, hybrid_results)
-    for i, doc in enumerate(reranked_results, 1):
-        print(f"Hybrid Top {i}:")
-        print(doc.metadata)
-        print(doc.page_content)
-        print("-" * 80)
+    system_prompt = f"""
+    You are a helpful AI assistant who gives answers from the given context only.
+    context : {reranked_results}
+    And you are required to put a citation number right next to every fact or claim from the context. just like this (1) for first chunk and (2) for second chunk and so on.
+    strictly follow the output format.
+
+    In last give a confidence score on the basis of :
+    1. Retrieval Confidence: How relevant and high-quality were the search results fetched from the database?
+    2. Citation Coverage: What percentage of claims in the generated answer have verified source citations backing them up?
+    3. Answer Completeness: Did the generated answer fully address all parts of the user's question?
+
+    if confidence score is less than 0.5 or the query is wholly out of context then return : 
+    {{ "answer": "I can't answer this question fully. Here's what I found and what's missing:"
+    "relevant_fragments": ["relevant fragments"],
+    "missing_information": ["missing information"],
+    "confidence_score": 0.0 }}
+
+    Output Format in valid JSON:
+    {{ "answer": "string", "confidence_score": 0.0 }}
+    """
+    client = Groq(
+        api_key=os.getenv("GROQ_API_KEY")
+    )
+    res = client.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        response_format= {"type" : "json_object"},
+        messages=[
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": query
+            }
+        ]
+    )
+    res = json.loads(res.choices[0].message.content)
+    print(res)
