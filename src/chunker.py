@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-
 def _enrich_metadata(chunks, strategy_name: str):
     for idx, chunk in enumerate(chunks):
         heading = (

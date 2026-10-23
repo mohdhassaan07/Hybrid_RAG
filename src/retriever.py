@@ -171,14 +171,21 @@ def cross_encoder_reranker(query, chunks):
     return reranked_docs
 
 
-if __name__ == "__main__":
-    query = input("Enter query: ")
+def ask_query(query):
     hybrid_results = hybrid_retriever(query)
     reranked_results = cross_encoder_reranker(query, hybrid_results)
+    context = "\n\n".join(
+    f"[{index}] {doc.page_content}"
+    for index, doc in enumerate(reranked_results, start=1)
+    )
     system_prompt = f"""
     You are a helpful AI assistant who gives answers from the given context only.
-    context : {reranked_results}
-    And you are required to put a citation number right next to every fact or claim from the context. just like this (1) for first chunk and (2) for second chunk and so on.
+    context : {context}
+    And you are required to put a citation number right next to every fact or claim from the context.
+    just like this (1) for first chunk and (2) for second chunk and so on.
+    `citations` must contain only the context numbers actually used
+    in the answer.
+
     strictly follow the output format.
 
     In last give a confidence score on the basis of :
@@ -187,13 +194,13 @@ if __name__ == "__main__":
     3. Answer Completeness: Did the generated answer fully address all parts of the user's question?
 
     if confidence score is less than 0.5 or the query is wholly out of context then return : 
-    {{ "answer": "I can't answer this question fully. Here's what I found and what's missing:"
+    {{ "content": "I can't answer this question fully. Here's what I found and what's missing:"
     "relevant_fragments": ["relevant fragments"],
     "missing_information": ["missing information"],
     "confidence_score": 0.0 }}
 
     Output Format in valid JSON:
-    {{ "answer": "string", "confidence_score": 0.0 }}
+    {{ "content": "string", "confidence_score": 0.0, "citations": [1, 3], "relevant_fragments": ["relevant fragments"], "missing_information": ["missing information"] }}
     """
     client = Groq(
         api_key=os.getenv("GROQ_API_KEY")
@@ -213,4 +220,39 @@ if __name__ == "__main__":
         ]
     )
     res = json.loads(res.choices[0].message.content)
-    print(res)
+    used_numbers = {
+        int(number)
+        for number in res.get("citations", [])
+        if isinstance(number, int)
+        and 1 <= number <= len(reranked_results)
+    }
+    citations = []
+    for number in sorted(used_numbers):
+        doc = reranked_results[number - 1]
+        metadata = doc.metadata
+
+        citations.append({
+            "number": number,
+            "excerpt": doc.page_content[:500],
+            "source": {
+                "id": metadata.get("id", doc.id),
+                "file": metadata.get("source"),
+                "page": metadata.get("page"),
+                "section": metadata.get("section"),
+            },
+        })
+    
+    if res.get("confidence_score") < 0.5:
+        return {
+        "content" : res["content"], 
+        "confidence_score" : res["confidence_score"],
+        "relevant_fragments": res["relevant_fragments"],
+        "missing_information": res["missing_information"],
+        "citations": citations
+    }
+    
+    return {
+        "content" : res["content"], 
+        "confidence_score" : res["confidence_score"],
+        "citations": citations
+    }
