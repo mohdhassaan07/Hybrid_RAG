@@ -30,7 +30,7 @@ def tokenize(text: str) -> list[str]:
 
 def qdrant_retriever(query: str):
     vector_store = QdrantVectorStore.from_existing_collection(
-        collection_name="hybrid_rag",
+        collection_name="likedin",
         embedding=embeddings,
         url="http://localhost:6333",
     )

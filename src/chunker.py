@@ -1,4 +1,4 @@
-from document_loader import load_document
+from src.document_loader import load_document
 from pathlib import Path
 # from langchain_experimental.text_splitter import SemanticChunker
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
