@@ -1,0 +1,93 @@
+[
+  {
+    "id": "GQA-005",
+    "category": "lookup",
+    "question": "What fields should Claude return in the Project 1 entity-and-relationship extraction schema?",
+    "reference_answer": "Entity type, canonical name, relationship type, source chunk ID, and confidence.",
+    "source_sections": [
+      "Project 1 – Phase 1: extraction schema, PDF p. 4"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-006",
+    "category": "lookup",
+    "question": "Which metadata fields should accompany chunks embedded into pgvector?",
+    "reference_answer": "Document ID, section path, date, and the entity IDs mentioned by the chunk.",
+    "source_sections": [
+      "Project 1 – Phase 2: Build the vector index alongside the graph, PDF p. 4"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-007",
+    "category": "lookup",
+    "question": "When should Project 1 route a question to graph retrieval rather than vector retrieval?",
+    "reference_answer": "Use graph retrieval for connection questions, multi-hop chains, comparisons across entities, and aggregations over relationships. Use vector retrieval for definitions, policy lookups, and single-fact questions.",
+    "source_sections": [
+      "Project 1 – Phase 3: Route questions to the right retrieval path, PDF p. 5"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-008",
+    "category": "lookup",
+    "question": "What are the three specialist agents in Project 2 and what does each do?",
+    "reference_answer": "The Planner creates a structured plan of subquestions; the Researcher searches for one subquestion and returns findings; the Writer turns findings into a cited report.",
+    "source_sections": [
+      "Project 2 – Phase 1: Build three specialists, PDF p. 7"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-023",
+    "category": "multi_hop",
+    "question": "What dependency chain connects Projects 1, 4, 6, and 5, and what role does each project play?",
+    "reference_answer": "Project 1 builds a system worth evaluating; Project 4 evaluates it; Project 6 attacks it; and Project 5 makes it cheaper through distillation. The guide presents this as a deliberate sequence in which the portfolio projects reference one another.",
+    "source_sections": [
+      "Before you start – Sequence them, do not sprint them, PDF p. 3"
+    ],
+    "expected_behavior": "answer",
+    "required_hops": 4
+  },
+  {
+    "id": "GQA-025",
+    "category": "no_answer",
+    "question": "Which exact Claude model version and API price should be used for the projects?",
+    "reference_answer": "The PDF names the Claude API but does not specify a model version or API price.",
+    "source_sections": [
+      "Project technology stacks and build phases, PDF pp. 4–18"
+    ],
+    "expected_behavior": "abstain"
+  },
+  {
+    "id": "GQA-027",
+    "category": "no_answer",
+    "question": "Which cloud GPU provider does the guide recommend renting for QLoRA training?",
+    "reference_answer": "The PDF says QLoRA can fit on a single smaller rented GPU, but it does not name or recommend a cloud GPU provider.",
+    "source_sections": [
+      "Project 5 – Phase 3: Fine tune an 8B student, PDF p. 14"
+    ],
+    "expected_behavior": "abstain"
+  },
+  {
+    "id": "GQA-028",
+    "category": "ambiguous",
+    "question": "How long does the project take?",
+    "reference_answer": "This is ambiguous because the guide describes six projects with different estimates. Ask which project the user means. The estimates are: Project 1: 3–4 weeks; Project 2: 3–4 weeks; Project 3: 2–3 weeks; Project 4: 2–3 weeks; Project 5: 4–5 weeks; Project 6: 3–4 weeks (part time).",
+    "source_sections": [
+      "Project estimates, PDF pp. 4, 7, 10, 12, 14, 17"
+    ],
+    "expected_behavior": "clarify"
+  },
+  {
+    "id": "GQA-030",
+    "category": "ambiguous",
+    "question": "What is the best model?",
+    "reference_answer": "The question is ambiguous: the guide discusses different model roles and does not identify one universally best model. Ask whether the user means the teacher model, the 8B student model, the judge, or a model used by another project. The guide names Claude API for several workflows and recommends a seven-to-eight-billion-parameter open model for the distillation student, but does not specify a single best model.",
+    "source_sections": [
+      "Project technology stacks and phases, PDF pp. 4–18"
+    ],
+    "expected_behavior": "clarify"
+  }
+]

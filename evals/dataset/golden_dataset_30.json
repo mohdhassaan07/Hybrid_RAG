@@ -1,0 +1,310 @@
+[
+  {
+    "id": "GQA-001",
+    "category": "lookup",
+    "question": "What are the six portfolio projects introduced in the guide?",
+    "reference_answer": "They are Knowledge Graph RAG for Enterprise Data, Multi-Agent Research Assistant, Self-Healing LLM Gateway, LLM-as-Judge with Human Calibration, Model Distillation Pipeline, and Automated Red-Team Harness.",
+    "source_sections": [
+      "Overview / project list, PDF p. 1"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-002",
+    "category": "lookup",
+    "question": "Which two projects does the guide recommend building if there is time for only two?",
+    "reference_answer": "Project 1 (Knowledge Graph RAG for Enterprise Data) and Project 3 (Self-Healing LLM Gateway).",
+    "source_sections": [
+      "Before you start – Sequence them, do not sprint them, PDF p. 3"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-003",
+    "category": "lookup",
+    "question": "What kinds of corpus are suggested for extracting entities and relationships in Project 1?",
+    "reference_answer": "SEC filings, an internal wiki, research papers with citations, or product documentation with dependency chains.",
+    "source_sections": [
+      "Project 1 – Phase 1: Extract entities and relationships into Neo4j, PDF p. 4"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-004",
+    "category": "lookup",
+    "question": "How many entity types and relationship types should the Project 1 ontology define?",
+    "reference_answer": "Define five to ten entity types and eight to fifteen relationship types.",
+    "source_sections": [
+      "Project 1 – Phase 1: ontology constraints, PDF p. 4"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-005",
+    "category": "lookup",
+    "question": "What fields should Claude return in the Project 1 entity-and-relationship extraction schema?",
+    "reference_answer": "Entity type, canonical name, relationship type, source chunk ID, and confidence.",
+    "source_sections": [
+      "Project 1 – Phase 1: extraction schema, PDF p. 4"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-006",
+    "category": "lookup",
+    "question": "Which metadata fields should accompany chunks embedded into pgvector?",
+    "reference_answer": "Document ID, section path, date, and the entity IDs mentioned by the chunk.",
+    "source_sections": [
+      "Project 1 – Phase 2: Build the vector index alongside the graph, PDF p. 4"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-007",
+    "category": "lookup",
+    "question": "When should Project 1 route a question to graph retrieval rather than vector retrieval?",
+    "reference_answer": "Use graph retrieval for connection questions, multi-hop chains, comparisons across entities, and aggregations over relationships. Use vector retrieval for definitions, policy lookups, and single-fact questions.",
+    "source_sections": [
+      "Project 1 – Phase 3: Route questions to the right retrieval path, PDF p. 5"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-008",
+    "category": "lookup",
+    "question": "What are the three specialist agents in Project 2 and what does each do?",
+    "reference_answer": "The Planner creates a structured plan of subquestions; the Researcher searches for one subquestion and returns findings; the Writer turns findings into a cited report.",
+    "source_sections": [
+      "Project 2 – Phase 1: Build three specialists, PDF p. 7"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-009",
+    "category": "lookup",
+    "question": "What four limits should the Project 2 supervisor enforce in the graph?",
+    "reference_answer": "Maximum subquestions, maximum searches per subquestion, maximum total tokens, and a wall-clock ceiling.",
+    "source_sections": [
+      "Project 2 – Phase 2: Add a supervisor that routes and reviews, PDF p. 7"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-010",
+    "category": "lookup",
+    "question": "What information should be saved in Redis after every node in Project 2?",
+    "reference_answer": "The run ID, plan, completed subquestions, findings collected so far, and cumulative token spend.",
+    "source_sections": [
+      "Project 2 – Phase 4: Persist run state in Redis, PDF p. 8"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-011",
+    "category": "lookup",
+    "question": "Which three circuit-breaker states must Project 3 implement?",
+    "reference_answer": "Closed, open, and half-open.",
+    "source_sections": [
+      "Project 3 – Phase 3: Fail over automatically, PDF p. 10"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-012",
+    "category": "lookup",
+    "question": "What should happen to deferrable work when every provider is degraded in Project 3?",
+    "reference_answer": "Push it to a Redis queue and retry with exponential backoff and jitter, rather than returning an error to the caller.",
+    "source_sections": [
+      "Project 3 – Phase 4: Queue and retry deferrable work, PDF p. 11"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-013",
+    "category": "lookup",
+    "question": "How many outputs does Project 4 ask you to hand-label for the gold standard?",
+    "reference_answer": "200 outputs, sampled across easy, hard, adversarial, and deliberately broken examples.",
+    "source_sections": [
+      "Project 4 – Phase 2: Hand label 200 outputs to build the gold standard, PDF p. 12"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-014",
+    "category": "lookup",
+    "question": "Which agreement metrics does Project 4 recommend reporting for ordinal scores?",
+    "reference_answer": "Weighted Cohen's kappa and Spearman correlation.",
+    "source_sections": [
+      "Project 4 – Phase 3: Measure agreement, then close the gaps, PDF p. 12"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-015",
+    "category": "lookup",
+    "question": "What three axes should be used to benchmark the student model against the teacher in Project 5?",
+    "reference_answer": "Quality on the untouched test set, cost per thousand requests, and latency at p50 and p95 under comparable concurrency.",
+    "source_sections": [
+      "Project 5 – Phase 4: Benchmark student against teacher on three axes, PDF p. 15"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-016",
+    "category": "multi_hop",
+    "question": "How does Project 1 make it possible to move from a graph result back to the source text, and then use that text to explore related entities?",
+    "reference_answer": "The graph and pgvector store the same chunk IDs. A graph path can therefore be linked back to its original text, while a retrieved passage can be linked to the graph neighborhood around it.",
+    "source_sections": [
+      "Project 1 – Phase 1: source chunk IDs on edges, PDF p. 4; Phase 2: shared chunk IDs, PDF p. 4"
+    ],
+    "expected_behavior": "answer",
+    "required_hops": 2
+  },
+  {
+    "id": "GQA-017",
+    "category": "multi_hop",
+    "question": "Why does the guide recommend logging Project 1 routing decisions, and where is that information used later?",
+    "reference_answer": "Routing decisions must be logged with the question and outcome because they cannot be reconstructed later; the data is needed in Phase 5 when benchmarking the system.",
+    "source_sections": [
+      "Project 1 – Phase 3: Route questions, PDF p. 5; Phase 5: Benchmark against plain vector RAG, PDF p. 5"
+    ],
+    "expected_behavior": "answer",
+    "required_hops": 2
+  },
+  {
+    "id": "GQA-018",
+    "category": "multi_hop",
+    "question": "How do Project 2's Redis persistence and idempotency help a research run recover after a process restart?",
+    "reference_answer": "The system writes graph state after every node, including the run plan, completed subquestions, findings, and token spend. After a crash or redeploy it can resume from saved progress; re-entering a completed node returns its cached result instead of repeating the work.",
+    "source_sections": [
+      "Project 2 – Phase 4: Persist run state in Redis, PDF p. 8"
+    ],
+    "expected_behavior": "answer",
+    "required_hops": 2
+  },
+  {
+    "id": "GQA-019",
+    "category": "multi_hop",
+    "question": "How do Project 3's circuit breaker and half-open probes work together to maintain service during a provider outage and recover afterward?",
+    "reference_answer": "When a provider exceeds its error-rate or p95-latency threshold, its breaker opens and traffic is routed to the next provider in the request class's preference list. During recovery, a small percentage of traffic is sent as half-open probes; success closes the breaker, while failure reopens it.",
+    "source_sections": [
+      "Project 3 – Phase 3: Fail over automatically, PDF p. 10"
+    ],
+    "expected_behavior": "answer",
+    "required_hops": 2
+  },
+  {
+    "id": "GQA-020",
+    "category": "multi_hop",
+    "question": "How does Project 4's human calibration influence the release process?",
+    "reference_answer": "Human labels establish a gold standard and allow judge-to-human agreement to be measured using weighted Cohen's kappa and Spearman correlation. The calibrated judge is then run through DeepEval in CI on each pull request, with explicit score thresholds causing builds to fail on regressions; the safety criterion cannot drop.",
+    "source_sections": [
+      "Project 4 – Phase 2: Hand label 200 outputs, PDF p. 12; Phase 3: Measure agreement, PDF p. 12; Phase 5: Gate releases on calibrated scores, PDF p. 13"
+    ],
+    "expected_behavior": "answer",
+    "required_hops": 3
+  },
+  {
+    "id": "GQA-021",
+    "category": "multi_hop",
+    "question": "How does Project 5 use Project 4, and what does that enable when evaluating open-ended student outputs?",
+    "reference_answer": "Project 5 uses the judge built in Project 4 as an additional quality-evaluation method when the student output is open-ended, alongside task metrics on the untouched test set.",
+    "source_sections": [
+      "Project 4 – Why this project signals / Phase 1, PDF pp. 12; Project 5 – Phase 4: Benchmark student against teacher, PDF p. 15"
+    ],
+    "expected_behavior": "answer",
+    "required_hops": 2
+  },
+  {
+    "id": "GQA-022",
+    "category": "multi_hop",
+    "question": "How does Project 6 turn a security failure into a regression test, and how is continued improvement demonstrated?",
+    "reference_answer": "A confirmed failure is filed with a minimal reproduction, payload, response, and suggested mitigation. After the fix, that finding remains permanently in the suite as a regression case. The dashboard tracks pass rate by attack category and regression count, and the next scheduled run demonstrates that the vulnerability stays closed.",
+    "source_sections": [
+      "Project 6 – Phase 4: File findings automatically, PDF p. 18; Phase 5: Re-run after each fix, PDF p. 18"
+    ],
+    "expected_behavior": "answer",
+    "required_hops": 2
+  },
+  {
+    "id": "GQA-023",
+    "category": "multi_hop",
+    "question": "What dependency chain connects Projects 1, 4, 6, and 5, and what role does each project play?",
+    "reference_answer": "Project 1 builds a system worth evaluating; Project 4 evaluates it; Project 6 attacks it; and Project 5 makes it cheaper through distillation. The guide presents this as a deliberate sequence in which the portfolio projects reference one another.",
+    "source_sections": [
+      "Before you start – Sequence them, do not sprint them, PDF p. 3"
+    ],
+    "expected_behavior": "answer",
+    "required_hops": 4
+  },
+  {
+    "id": "GQA-024",
+    "category": "no_answer",
+    "question": "What exact Cohen's kappa score did the author achieve when calibrating the judge?",
+    "reference_answer": "The PDF does not report an achieved kappa score. It uses a placeholder ('kappa X') in the example resume line and instructs the builder to measure and report their own result.",
+    "source_sections": [
+      "Project 4 – Resume line, PDF p. 13; Phase 3, PDF p. 12"
+    ],
+    "expected_behavior": "abstain"
+  },
+  {
+    "id": "GQA-025",
+    "category": "no_answer",
+    "question": "Which exact Claude model version and API price should be used for the projects?",
+    "reference_answer": "The PDF names the Claude API but does not specify a model version or API price.",
+    "source_sections": [
+      "Project technology stacks and build phases, PDF pp. 4–18"
+    ],
+    "expected_behavior": "abstain"
+  },
+  {
+    "id": "GQA-026",
+    "category": "no_answer",
+    "question": "What is the exact number of documents in the corpus used for the guide's Knowledge Graph RAG benchmark?",
+    "reference_answer": "The PDF does not provide an actual corpus size. Its resume-line example uses the placeholder 'N documents'.",
+    "source_sections": [
+      "Project 1 – Resume line, PDF p. 5"
+    ],
+    "expected_behavior": "abstain"
+  },
+  {
+    "id": "GQA-027",
+    "category": "no_answer",
+    "question": "Which cloud GPU provider does the guide recommend renting for QLoRA training?",
+    "reference_answer": "The PDF says QLoRA can fit on a single smaller rented GPU, but it does not name or recommend a cloud GPU provider.",
+    "source_sections": [
+      "Project 5 – Phase 3: Fine tune an 8B student, PDF p. 14"
+    ],
+    "expected_behavior": "abstain"
+  },
+  {
+    "id": "GQA-028",
+    "category": "ambiguous",
+    "question": "How long does the project take?",
+    "reference_answer": "This is ambiguous because the guide describes six projects with different estimates. Ask which project the user means. The estimates are: Project 1: 3–4 weeks; Project 2: 3–4 weeks; Project 3: 2–3 weeks; Project 4: 2–3 weeks; Project 5: 4–5 weeks; Project 6: 3–4 weeks (part time).",
+    "source_sections": [
+      "Project estimates, PDF pp. 4, 7, 10, 12, 14, 17"
+    ],
+    "expected_behavior": "clarify"
+  },
+  {
+    "id": "GQA-029",
+    "category": "ambiguous",
+    "question": "Which database should I use?",
+    "reference_answer": "The question is underspecified because the guide mentions different storage systems for different projects. Ask which project or data requirement the user means. Examples include Neo4j and pgvector for Project 1, Redis for Project 2 state, Redis for Project 3 counters/queue, Postgres for Project 4 labels and evaluation runs, and Postgres for Project 6 findings.",
+    "source_sections": [
+      "Project technology stacks and implementation phases, PDF pp. 4–18"
+    ],
+    "expected_behavior": "clarify"
+  },
+  {
+    "id": "GQA-030",
+    "category": "ambiguous",
+    "question": "What is the best model?",
+    "reference_answer": "The question is ambiguous: the guide discusses different model roles and does not identify one universally best model. Ask whether the user means the teacher model, the 8B student model, the judge, or a model used by another project. The guide names Claude API for several workflows and recommends a seven-to-eight-billion-parameter open model for the distillation student, but does not specify a single best model.",
+    "source_sections": [
+      "Project technology stacks and phases, PDF pp. 4–18"
+    ],
+    "expected_behavior": "clarify"
+  }
+]
