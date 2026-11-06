@@ -248,11 +248,13 @@ def ask_query(query):
         "confidence_score" : res["confidence_score"],
         "relevant_fragments": res["relevant_fragments"],
         "missing_information": res["missing_information"],
-        "citations": citations
+        "citations": citations,
+        "relevant_chunks" : reranked_results
     }
     
     return {
         "content" : res["content"], 
         "confidence_score" : res["confidence_score"],
-        "citations": citations
+        "citations": citations,
+        "relevant_chunks" : reranked_results
     }

@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from evaluators.correctness import evaluate_correctness
 from src.retriever import ask_query
-
+from evaluators.faithfulness import evaluate_faithfulness
 
 # Resolve paths relative to this file, not the cwd
 EVALS_DIR = Path(__file__).parent
@@ -14,7 +14,7 @@ def load_goldens(path: str):
 
 
 def generate_report(results: list[dict]) -> float:
-    final_score = sum(r["correctness"]["score"] for r in results) / len(results)
+    final_score = sum(r["score"] for r in results) / len(results)
     return final_score
 
 
@@ -29,24 +29,33 @@ def run_evaluation() -> float:
         response = ask_query(test_case["question"])
         
         # Evaluate correctness using Groq as LLM judge
-        correctness = evaluate_correctness(
+        # correctness = evaluate_correctness(
+        #     question=test_case["question"],
+        #     reference_answer=test_case["reference_answer"],
+        #     generated_answer=response["content"],
+        # )
+
+        # res = {
+        #     "id": test_case["id"],
+        #     "correctness": {
+        #         "score":  correctness["score"],
+        #         "passed": correctness["passed"],
+        #         "reason": correctness["reason"],
+        #     },
+        # }
+        
+        # Evaluate faithfulness using Groq as LLM judge
+        faithfulness = evaluate_faithfulness(
             question=test_case["question"],
-            reference_answer=test_case["reference_answer"],
+            retrieval_context=[doc.page_content for doc in response["relevant_chunks"]],
             generated_answer=response["content"],
         )
-
-        # faithfulness = evaluate_faithfulness(...)
-        # retrieval    = evaluate_retrieval(...)
-        # citation     = evaluate_citations(...)
         res = {
             "id": test_case["id"],
-            "correctness": {
-                "score":  correctness["score"],
-                "passed": correctness["passed"],
-                "reason": correctness["reason"],
-            },
+            "score":  faithfulness["score"],
+            "passed": faithfulness["passed"],
+            "reason": faithfulness["reason"],
         }
-
         results.append(res)
         print(res)
 

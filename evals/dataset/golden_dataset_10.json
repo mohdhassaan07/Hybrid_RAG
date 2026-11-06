@@ -1,25 +1,5 @@
 [
   {
-    "id": "GQA-005",
-    "category": "lookup",
-    "question": "What fields should Claude return in the Project 1 entity-and-relationship extraction schema?",
-    "reference_answer": "Entity type, canonical name, relationship type, source chunk ID, and confidence.",
-    "source_sections": [
-      "Project 1 – Phase 1: extraction schema, PDF p. 4"
-    ],
-    "expected_behavior": "answer"
-  },
-  {
-    "id": "GQA-006",
-    "category": "lookup",
-    "question": "Which metadata fields should accompany chunks embedded into pgvector?",
-    "reference_answer": "Document ID, section path, date, and the entity IDs mentioned by the chunk.",
-    "source_sections": [
-      "Project 1 – Phase 2: Build the vector index alongside the graph, PDF p. 4"
-    ],
-    "expected_behavior": "answer"
-  },
-  {
     "id": "GQA-007",
     "category": "lookup",
     "question": "When should Project 1 route a question to graph retrieval rather than vector retrieval?",
