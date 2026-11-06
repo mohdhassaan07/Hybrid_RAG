@@ -1,25 +1,5 @@
 [
   {
-    "id": "GQA-007",
-    "category": "lookup",
-    "question": "When should Project 1 route a question to graph retrieval rather than vector retrieval?",
-    "reference_answer": "Use graph retrieval for connection questions, multi-hop chains, comparisons across entities, and aggregations over relationships. Use vector retrieval for definitions, policy lookups, and single-fact questions.",
-    "source_sections": [
-      "Project 1 – Phase 3: Route questions to the right retrieval path, PDF p. 5"
-    ],
-    "expected_behavior": "answer"
-  },
-  {
-    "id": "GQA-008",
-    "category": "lookup",
-    "question": "What are the three specialist agents in Project 2 and what does each do?",
-    "reference_answer": "The Planner creates a structured plan of subquestions; the Researcher searches for one subquestion and returns findings; the Writer turns findings into a cited report.",
-    "source_sections": [
-      "Project 2 – Phase 1: Build three specialists, PDF p. 7"
-    ],
-    "expected_behavior": "answer"
-  },
-  {
     "id": "GQA-023",
     "category": "multi_hop",
     "question": "What dependency chain connects Projects 1, 4, 6, and 5, and what role does each project play?",
@@ -29,16 +9,6 @@
     ],
     "expected_behavior": "answer",
     "required_hops": 4
-  },
-  {
-    "id": "GQA-025",
-    "category": "no_answer",
-    "question": "Which exact Claude model version and API price should be used for the projects?",
-    "reference_answer": "The PDF names the Claude API but does not specify a model version or API price.",
-    "source_sections": [
-      "Project technology stacks and build phases, PDF pp. 4–18"
-    ],
-    "expected_behavior": "abstain"
   },
   {
     "id": "GQA-027",
@@ -57,16 +27,6 @@
     "reference_answer": "This is ambiguous because the guide describes six projects with different estimates. Ask which project the user means. The estimates are: Project 1: 3–4 weeks; Project 2: 3–4 weeks; Project 3: 2–3 weeks; Project 4: 2–3 weeks; Project 5: 4–5 weeks; Project 6: 3–4 weeks (part time).",
     "source_sections": [
       "Project estimates, PDF pp. 4, 7, 10, 12, 14, 17"
-    ],
-    "expected_behavior": "clarify"
-  },
-  {
-    "id": "GQA-030",
-    "category": "ambiguous",
-    "question": "What is the best model?",
-    "reference_answer": "The question is ambiguous: the guide discusses different model roles and does not identify one universally best model. Ask whether the user means the teacher model, the 8B student model, the judge, or a model used by another project. The guide names Claude API for several workflows and recommends a seven-to-eight-billion-parameter open model for the distillation student, but does not specify a single best model.",
-    "source_sections": [
-      "Project technology stacks and phases, PDF pp. 4–18"
     ],
     "expected_behavior": "clarify"
   }

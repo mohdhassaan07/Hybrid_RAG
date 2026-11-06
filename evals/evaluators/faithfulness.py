@@ -1,7 +1,10 @@
 from deepeval.metrics import FaithfulnessMetric
 from deepeval.test_case import LLMTestCase
 from deepeval import evaluate
-from .correctness import GroqJudge
+try:
+    from .correctness import GroqJudge
+except ImportError:
+    from correctness import GroqJudge  # when run directly as a script
 def evaluate_faithfulness(
     question:str,
     retrieval_context : list[str],

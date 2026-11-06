@@ -235,7 +235,7 @@ def ask_query(query):
             "number": number,
             "excerpt": doc.page_content[:500],
             "source": {
-                "id": metadata.get("id", doc.id),
+                "chunk_index": metadata.get("chunk_index"),
                 "file": metadata.get("source"),
                 "page": metadata.get("page"),
                 "section": metadata.get("section"),

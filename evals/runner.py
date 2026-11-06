@@ -3,7 +3,7 @@ from pathlib import Path
 from evaluators.correctness import evaluate_correctness
 from src.retriever import ask_query
 from evaluators.faithfulness import evaluate_faithfulness
-
+from evaluators.retrieval_relevance import evaluate_retrieval
 # Resolve paths relative to this file, not the cwd
 EVALS_DIR = Path(__file__).parent
 
@@ -37,29 +37,35 @@ def run_evaluation() -> float:
 
         # res = {
         #     "id": test_case["id"],
-        #     "correctness": {
-        #         "score":  correctness["score"],
-        #         "passed": correctness["passed"],
-        #         "reason": correctness["reason"],
-        #     },
+        #     "score":  correctness["score"],
+        #     "passed": correctness["passed"],
+        #     "reason": correctness["reason"],
         # }
         
         # Evaluate faithfulness using Groq as LLM judge
-        faithfulness = evaluate_faithfulness(
+        # faithfulness = evaluate_faithfulness(
+        #     question=test_case["question"],
+        #     retrieval_context=[doc.page_content for doc in response["relevant_chunks"]],
+        #     generated_answer=response["content"],
+        # )
+        # res = {
+        #     "id": test_case["id"],
+        #     "score":  faithfulness["score"],
+        #     "passed": faithfulness["passed"],
+        #     "reason": faithfulness["reason"],
+        # }
+        # results.append(res)
+    
+        retrieval = evaluate_retrieval(
             question=test_case["question"],
             retrieval_context=[doc.page_content for doc in response["relevant_chunks"]],
-            generated_answer=response["content"],
+            expected_answer=test_case["reference_answer"],
         )
-        res = {
-            "id": test_case["id"],
-            "score":  faithfulness["score"],
-            "passed": faithfulness["passed"],
-            "reason": faithfulness["reason"],
-        }
-        results.append(res)
-        print(res)
 
-    return generate_report(results)
+        results.append(retrieval)
+        print(retrieval)
+
+    return results
 
 
 print("final=", run_evaluation())
