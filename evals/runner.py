@@ -4,6 +4,7 @@ from evaluators.correctness import evaluate_correctness
 from src.retriever import ask_query
 from evaluators.faithfulness import evaluate_faithfulness
 from evaluators.retrieval_relevance import evaluate_retrieval
+from evaluators.citation_accuracy import evaluate_citation_accuracy
 # Resolve paths relative to this file, not the cwd
 EVALS_DIR = Path(__file__).parent
 
@@ -23,11 +24,11 @@ def run_evaluation() -> float:
 
     results = []
 
-    for test_case in dataset:        
+    for test_case in dataset:
 
         # Execute the RAG pipeline
         response = ask_query(test_case["question"])
-        
+
         # Evaluate correctness using Groq as LLM judge
         # correctness = evaluate_correctness(
         #     question=test_case["question"],
@@ -41,7 +42,7 @@ def run_evaluation() -> float:
         #     "passed": correctness["passed"],
         #     "reason": correctness["reason"],
         # }
-        
+
         # Evaluate faithfulness using Groq as LLM judge
         # faithfulness = evaluate_faithfulness(
         #     question=test_case["question"],
@@ -55,15 +56,24 @@ def run_evaluation() -> float:
         #     "reason": faithfulness["reason"],
         # }
         # results.append(res)
-    
-        retrieval = evaluate_retrieval(
-            question=test_case["question"],
-            retrieval_context=[doc.page_content for doc in response["relevant_chunks"]],
-            expected_answer=test_case["reference_answer"],
+
+        # retrieval = evaluate_retrieval(
+        #     question=test_case["question"],
+        #     retrieval_context=[
+        #         doc.page_content for doc in response["relevant_chunks"]],
+        #     expected_answer=test_case["reference_answer"],
+        # )
+
+        # results.append(retrieval)
+        # print(retrieval)
+
+        citation_accuracy = evaluate_citation_accuracy(
+            retriever_response=response
         )
 
-        results.append(retrieval)
-        print(retrieval)
+        results.append(citation_accuracy)
+        print(citation_accuracy)
+        print("--------------------------------------")
 
     return results
 

@@ -181,12 +181,19 @@ def ask_query(query):
     system_prompt = f"""
     You are a helpful AI assistant who gives answers from the given context only.
     context : {context}
-    And you are required to put a citation number right next to every fact or claim from the context.
-    just like this (1) for first chunk and (2) for second chunk and so on.
-    `citations` must contain only the context numbers actually used
-    in the answer.
 
-    strictly follow the output format.
+    CITATION RULES:
+    1. Every factual claim must have at least one citation.
+    2. A citation must refer to the exact context chunk that supports the claim.
+    3. Use the citation format [1], [2], [3] etc., where the number corresponds to the context chunk number.
+    4. Never invent citation numbers.
+    5. Do not cite a chunk unless it directly supports the claim.
+    6. If different parts of a sentence are supported by different
+    chunks, split the sentence into separate claims.
+    7. Do not combine multiple unrelated facts into one claim.
+    8. If a claim cannot be supported by the context, do not present
+    it as a fact. Mention that the information is unavailable.
+    9. Do not use external knowledge or assumptions.
 
     In last give a confidence score on the basis of :
     1. Retrieval Confidence: How relevant and high-quality were the search results fetched from the database?
@@ -199,8 +206,16 @@ def ask_query(query):
     "missing_information": ["missing information"],
     "confidence_score": 0.0 }}
 
+    strictly follow the output format.
+    
+
     Output Format in valid JSON:
-    {{ "content": "string", "confidence_score": 0.0, "citations": [1, 3], "relevant_fragments": ["relevant fragments"], "missing_information": ["missing information"] }}
+    {{ "content": [
+        {{
+            "text": "Factual claim",
+            "citations": [1]
+        }}
+    ], "confidence_score": 0.0, "citations": [1, 3], "relevant_fragments": ["relevant fragments"], "missing_information": ["missing information"] }}
     """
     client = Groq(
         api_key=os.getenv("GROQ_API_KEY")

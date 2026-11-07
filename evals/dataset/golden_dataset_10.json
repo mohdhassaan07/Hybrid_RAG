@@ -1,14 +1,77 @@
 [
   {
-    "id": "GQA-023",
-    "category": "multi_hop",
-    "question": "What dependency chain connects Projects 1, 4, 6, and 5, and what role does each project play?",
-    "reference_answer": "Project 1 builds a system worth evaluating; Project 4 evaluates it; Project 6 attacks it; and Project 5 makes it cheaper through distillation. The guide presents this as a deliberate sequence in which the portfolio projects reference one another.",
+    "id": "GQA-012",
+    "category": "lookup",
+    "question": "What should happen to deferrable work when every provider is degraded in Project 3?",
+    "reference_answer": "Push it to a Redis queue and retry with exponential backoff and jitter, rather than returning an error to the caller.",
     "source_sections": [
-      "Before you start – Sequence them, do not sprint them, PDF p. 3"
+      "Project 3 – Phase 4: Queue and retry deferrable work, PDF p. 11"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-014",
+    "category": "lookup",
+    "question": "Which agreement metrics does Project 4 recommend reporting for ordinal scores?",
+    "reference_answer": "Weighted Cohen's kappa and Spearman correlation.",
+    "source_sections": [
+      "Project 4 – Phase 3: Measure agreement, then close the gaps, PDF p. 12"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-015",
+    "category": "lookup",
+    "question": "What three axes should be used to benchmark the student model against the teacher in Project 5?",
+    "reference_answer": "Quality on the untouched test set, cost per thousand requests, and latency at p50 and p95 under comparable concurrency.",
+    "source_sections": [
+      "Project 5 – Phase 4: Benchmark student against teacher on three axes, PDF p. 15"
+    ],
+    "expected_behavior": "answer"
+  },
+  {
+    "id": "GQA-016",
+    "category": "multi_hop",
+    "question": "How does Project 1 make it possible to move from a graph result back to the source text, and then use that text to explore related entities?",
+    "reference_answer": "The graph and pgvector store the same chunk IDs. A graph path can therefore be linked back to its original text, while a retrieved passage can be linked to the graph neighborhood around it.",
+    "source_sections": [
+      "Project 1 – Phase 1: source chunk IDs on edges, PDF p. 4; Phase 2: shared chunk IDs, PDF p. 4"
     ],
     "expected_behavior": "answer",
-    "required_hops": 4
+    "required_hops": 2
+  },
+  {
+    "id": "GQA-017",
+    "category": "multi_hop",
+    "question": "Why does the guide recommend logging Project 1 routing decisions, and where is that information used later?",
+    "reference_answer": "Routing decisions must be logged with the question and outcome because they cannot be reconstructed later; the data is needed in Phase 5 when benchmarking the system.",
+    "source_sections": [
+      "Project 1 – Phase 3: Route questions, PDF p. 5; Phase 5: Benchmark against plain vector RAG, PDF p. 5"
+    ],
+    "expected_behavior": "answer",
+    "required_hops": 2
+  },
+  {
+    "id": "GQA-018",
+    "category": "multi_hop",
+    "question": "How do Project 2's Redis persistence and idempotency help a research run recover after a process restart?",
+    "reference_answer": "The system writes graph state after every node, including the run plan, completed subquestions, findings, and token spend. After a crash or redeploy it can resume from saved progress; re-entering a completed node returns its cached result instead of repeating the work.",
+    "source_sections": [
+      "Project 2 – Phase 4: Persist run state in Redis, PDF p. 8"
+    ],
+    "expected_behavior": "answer",
+    "required_hops": 2
+  },
+  {
+    "id": "GQA-019",
+    "category": "multi_hop",
+    "question": "How do Project 3's circuit breaker and half-open probes work together to maintain service during a provider outage and recover afterward?",
+    "reference_answer": "When a provider exceeds its error-rate or p95-latency threshold, its breaker opens and traffic is routed to the next provider in the request class's preference list. During recovery, a small percentage of traffic is sent as half-open probes; success closes the breaker, while failure reopens it.",
+    "source_sections": [
+      "Project 3 – Phase 3: Fail over automatically, PDF p. 10"
+    ],
+    "expected_behavior": "answer",
+    "required_hops": 2
   },
   {
     "id": "GQA-027",
