@@ -71,6 +71,7 @@ def bm25_retriever(
             break
     return results
 
+
 def reciprocal_rank_fusion(rankings, k=60):
     scores = {}
     for ranking in rankings:
@@ -78,6 +79,7 @@ def reciprocal_rank_fusion(rankings, k=60):
             doc_id = doc.metadata.get("id") or doc.id
             scores[doc_id] = scores.get(doc_id, 0) + 1 / (k + rank + 1)
     return sorted(scores.items(), key=lambda x: x[1], reverse=True)
+
 
 def hybrid_retriever(
     query: str,
@@ -91,23 +93,23 @@ def hybrid_retriever(
     bm25_results = bm25_retriever(query, k=rerank_top_n)
     bm25_docs = [doc for doc, score in bm25_results]
     bm25_rankings = [bm25_docs] if bm25_docs else []
-    
+
     # Step 2: Run vector retrieval
     vector_docs = qdrant_retriever(query)
     vector_rankings = [vector_docs] if vector_docs else []
-    
+
     # Step 3: Combine rankings using RRF
     all_rankings = bm25_rankings + vector_rankings
     combined_scores = reciprocal_rank_fusion(all_rankings, k=60)
-    
+
     # Step 4: Get top N unique documents
     final_results = []
     seen_ids = set()
-    
+
     for doc_id, score in combined_scores:
         if doc_id in seen_ids:
             continue
-        
+
         # Find the original document object
         doc = None
         if bm25_docs and doc_id in [doc.metadata['id'] for doc in bm25_docs]:
@@ -120,15 +122,16 @@ def hybrid_retriever(
                 if d.metadata['id'] == doc_id:
                     doc = d
                     break
-        
+
         if doc:
             final_results.append(doc)
             seen_ids.add(doc_id)
-        
+
         if len(final_results) == k:
             break
-    
+
     return final_results
+
 
 def cross_encoder_reranker(query, chunks):
     """a cross-encoder reranker (LLM-as-judge) that scores each
@@ -160,7 +163,7 @@ def cross_encoder_reranker(query, chunks):
         )
         relevence = res.choices[0].message.content.strip()
         scores[chunk.id] = relevence
-        
+
     reranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
     reranked_docs = []
     for doc_id, score in reranked:
@@ -175,8 +178,8 @@ def ask_query(query):
     hybrid_results = hybrid_retriever(query)
     reranked_results = cross_encoder_reranker(query, hybrid_results)
     context = "\n\n".join(
-    f"[{index}] {doc.page_content}"
-    for index, doc in enumerate(reranked_results, start=1)
+        f"[{index}] {doc.page_content}"
+        for index, doc in enumerate(reranked_results, start=1)
     )
     system_prompt = f"""
     You are a helpful AI assistant who gives answers from the given context only.
@@ -222,7 +225,7 @@ def ask_query(query):
     )
     res = client.chat.completions.create(
         model="openai/gpt-oss-120b",
-        response_format= {"type" : "json_object"},
+        response_format={"type": "json_object"},
         messages=[
             {
                 "role": "system",
@@ -248,7 +251,7 @@ def ask_query(query):
 
         citations.append({
             "number": number,
-            "excerpt": doc.page_content[:500],
+            "excerpt": doc.page_content,
             "source": {
                 "chunk_index": metadata.get("chunk_index"),
                 "file": metadata.get("source"),
@@ -256,20 +259,20 @@ def ask_query(query):
                 "section": metadata.get("section"),
             },
         })
-    
+
     if res.get("confidence_score") < 0.5:
         return {
-        "content" : res["content"], 
-        "confidence_score" : res["confidence_score"],
-        "relevant_fragments": res["relevant_fragments"],
-        "missing_information": res["missing_information"],
-        "citations": citations,
-        "relevant_chunks" : reranked_results
-    }
-    
+            "content": res["content"],
+            "confidence_score": res["confidence_score"],
+            "relevant_fragments": res["relevant_fragments"],
+            "missing_information": res["missing_information"],
+            "citations": citations,
+            "relevant_chunks": reranked_results
+        }
+
     return {
-        "content" : res["content"], 
-        "confidence_score" : res["confidence_score"],
+        "content": res["content"],
+        "confidence_score": res["confidence_score"],
         "citations": citations,
-        "relevant_chunks" : reranked_results
+        "relevant_chunks": reranked_results
     }

@@ -72,6 +72,7 @@ def run_evaluation() -> float:
         )
 
         results.append(citation_accuracy)
+        print("ID:", test_case["id"])
         print(citation_accuracy)
         print("--------------------------------------")
 

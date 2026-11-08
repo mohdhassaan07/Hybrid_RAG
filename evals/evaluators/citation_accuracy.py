@@ -172,46 +172,48 @@ def evaluate_citation_accuracy(
     }
 
 
-res = evaluate_citation_accuracy(
-    {
-        "content": [
-            {
-                "text": "Project 4 supplies a judge for open‑ended outputs that is used in Phase 4 benchmarking of the student model against the teacher.",
-                "citations": [
+if __name__ == "__main__":
+
+    res = evaluate_citation_accuracy(
+        {
+            "content": [
+                {
+                    "text": "Project 4 supplies a judge for open‑ended outputs that is used in Phase 4 benchmarking of the student model against the teacher.",
+                    "citations": [
                         1
-                ]
-            },
-            {
-                "text": "Project 5 incorporates this judge from Project 4 when evaluating its fine‑tuned student model, allowing it to measure the quality of open‑ended student outputs in addition to standard task metrics.",
-                "citations": [
+                    ]
+                },
+                {
+                    "text": "Project 5 incorporates this judge from Project 4 when evaluating its fine‑tuned student model, allowing it to measure the quality of open‑ended student outputs in addition to standard task metrics.",
+                    "citations": [
                         1,
                         3
-                ]
-            }
-        ],
-        "confidence_score": 0.96,
-        "citations": [
-            {
-                "number": 1,
-                "excerpt": "▸ Watch for overfitting after two or three epochs on a small dataset, and for degradation if the\nlearning rate is too aggressive.\n▸ Train at least two configurations, for example LoRA rank eight against rank thirty two, so you\nhave a real trade off to discuss rather than a single lucky run.\nPHASE 4\nBenchmark student against teacher on three axes\n▸ Quality on the untouched test set using task metrics, plus the judge from Project 4 where the\noutput is open ended.\n▸ Cost per thousand requests: teac",
-                "source": {
-                    "chunk_index": 34,
-                    "file": "D:\\GenAI\\hybrid_RAG\\uploads\\BASWE_Build_These_Six_Projects.pdf",
-                    "page": 15,
-                    "section": ""
+                    ]
                 }
-            },
-            {
-                "number": 3,
-                "excerpt": "PROJECT 5 · FINE-TUNING\nModel Distillation Pipeline\nPython · Hugging Face · PyTorch · Claude API · W&B · vLLM\nEstimated build time: 4 to 5 weeks part time\nWhy this project signals\nThis is the project that lets you talk about unit economics, which is the fastest way to sound\nsenior. The output is not a model, it is a break even analysis: the request volume above which\nowning the model beats renting it. Very few candidates can produce that number from their own\nwork.\nPHASE 1\nPick one narrow task a",
-                "source": {
-                    "chunk_index": 31,
-                    "file": "D:\\GenAI\\hybrid_RAG\\uploads\\BASWE_Build_These_Six_Projects.pdf",
-                    "page": 14,
-                    "section": "Model Distillation Pipeline"
+            ],
+            "confidence_score": 0.96,
+            "citations": [
+                {
+                    "number": 1,
+                    "excerpt": "▸ Watch for overfitting after two or three epochs on a small dataset, and for degradation if the\nlearning rate is too aggressive.\n▸ Train at least two configurations, for example LoRA rank eight against rank thirty two, so you\nhave a real trade off to discuss rather than a single lucky run.\nPHASE 4\nBenchmark student against teacher on three axes\n▸ Quality on the untouched test set using task metrics, plus the judge from Project 4 where the\noutput is open ended.\n▸ Cost per thousand requests: teac",
+                    "source": {
+                        "chunk_index": 34,
+                        "file": "D:\\GenAI\\hybrid_RAG\\uploads\\BASWE_Build_These_Six_Projects.pdf",
+                        "page": 15,
+                        "section": ""
+                    }
+                },
+                {
+                    "number": 3,
+                    "excerpt": "PROJECT 5 · FINE-TUNING\nModel Distillation Pipeline\nPython · Hugging Face · PyTorch · Claude API · W&B · vLLM\nEstimated build time: 4 to 5 weeks part time\nWhy this project signals\nThis is the project that lets you talk about unit economics, which is the fastest way to sound\nsenior. The output is not a model, it is a break even analysis: the request volume above which\nowning the model beats renting it. Very few candidates can produce that number from their own\nwork.\nPHASE 1\nPick one narrow task a",
+                    "source": {
+                        "chunk_index": 31,
+                        "file": "D:\\GenAI\\hybrid_RAG\\uploads\\BASWE_Build_These_Six_Projects.pdf",
+                        "page": 14,
+                        "section": "Model Distillation Pipeline"
+                    }
                 }
-            }
-        ],
-    }
-)
-print(res)
+            ],
+        }
+    )
+    print(res)

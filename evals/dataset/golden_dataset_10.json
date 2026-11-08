@@ -1,25 +1,5 @@
 [
   {
-    "id": "GQA-012",
-    "category": "lookup",
-    "question": "What should happen to deferrable work when every provider is degraded in Project 3?",
-    "reference_answer": "Push it to a Redis queue and retry with exponential backoff and jitter, rather than returning an error to the caller.",
-    "source_sections": [
-      "Project 3 – Phase 4: Queue and retry deferrable work, PDF p. 11"
-    ],
-    "expected_behavior": "answer"
-  },
-  {
-    "id": "GQA-014",
-    "category": "lookup",
-    "question": "Which agreement metrics does Project 4 recommend reporting for ordinal scores?",
-    "reference_answer": "Weighted Cohen's kappa and Spearman correlation.",
-    "source_sections": [
-      "Project 4 – Phase 3: Measure agreement, then close the gaps, PDF p. 12"
-    ],
-    "expected_behavior": "answer"
-  },
-  {
     "id": "GQA-015",
     "category": "lookup",
     "question": "What three axes should be used to benchmark the student model against the teacher in Project 5?",
