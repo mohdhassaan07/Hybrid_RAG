@@ -12,9 +12,11 @@ from src.document_loader import load_document
 
 load_dotenv()
 
-
+collection_name = "hybrid_rag2"
 embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2-preview")
-def build_qdrant_index(chunks, embeddings, collection_name="hybrid_rag", url="http://localhost:6333"):
+
+
+def build_qdrant_index(chunks, embeddings, collection_name=collection_name, url="http://localhost:6333"):
     """Build or update the dense Qdrant vector store with explicit chunk IDs."""
     ids = [chunk.id for chunk in chunks]
     return QdrantVectorStore.from_documents(
@@ -36,6 +38,8 @@ def build_bm25_index(chunks, save_path: Path | None = None):
 
 
 SIMILARITY_THRESHOLD = 0.95
+
+
 def drop_near_duplicates(chunks, vector_store, embeddings):
     accepted = []
 
@@ -57,8 +61,9 @@ def drop_near_duplicates(chunks, vector_store, embeddings):
 
     return accepted
 
+
 def ingest(pdf_path: str):
-    # accepts pdf or text from user input 
+    # accepts pdf or text from user input
 
     # pdf_path = Path(__file__).parent.parent / "six_projects-1-8.pdf"
     bm25_save_path = Path(__file__).parent.parent / "bm25_index.pkl"
@@ -70,16 +75,17 @@ def ingest(pdf_path: str):
     fixed_size_chunks, markdown_chunks = chunk_docs(docs)
     all_chunks = fixed_size_chunks + markdown_chunks
 
-    collection_name = "hybrid_rag"
     client = QdrantClient(url="http://localhost:6333")
-    existing_collections = [c.name for c in client.get_collections().collections]
+    existing_collections = [
+        c.name for c in client.get_collections().collections]
     if collection_name in existing_collections:
         existing_store = QdrantVectorStore.from_existing_collection(
             collection_name=collection_name,
             embedding=embeddings,
             url="http://localhost:6333",
-            )
-        all_chunks = drop_near_duplicates(all_chunks, existing_store, embeddings) 
+        )
+        all_chunks = drop_near_duplicates(
+            all_chunks, existing_store, embeddings)
     else:
         pass
 
@@ -96,12 +102,15 @@ def ingest(pdf_path: str):
         chunk.id = chunk_id
         chunk.metadata["id"] = chunk_id
 
-    print(f"Indexing {len(all_chunks)} chunks into Qdrant and BM25 concurrently...")
+    print(
+        f"Indexing {len(all_chunks)} chunks into Qdrant and BM25 concurrently...")
 
     # 4. Build both indexes in parallel
     with ThreadPoolExecutor(max_workers=2) as executor:
-        qdrant_future = executor.submit(build_qdrant_index, all_chunks, embeddings)
-        bm25_future = executor.submit(build_bm25_index, all_chunks, bm25_save_path)
+        qdrant_future = executor.submit(
+            build_qdrant_index, all_chunks, embeddings)
+        bm25_future = executor.submit(
+            build_bm25_index, all_chunks, bm25_save_path)
 
         vector_store = qdrant_future.result()
         bm25_retriever = bm25_future.result()

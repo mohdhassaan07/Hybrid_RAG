@@ -29,11 +29,13 @@ def run_evaluation() -> float:
         # Execute the RAG pipeline
         response = ask_query(test_case["question"])
 
-        # Evaluate correctness using Groq as LLM judge
+        # # Evaluate correctness using Groq as LLM judge
         # correctness = evaluate_correctness(
         #     question=test_case["question"],
         #     reference_answer=test_case["reference_answer"],
-        #     generated_answer=response["content"],
+        #     generated_answer=" ".join(
+        #         [texts["text"] for texts in response["content"]]
+        #     )
         # )
 
         # res = {
@@ -42,41 +44,51 @@ def run_evaluation() -> float:
         #     "passed": correctness["passed"],
         #     "reason": correctness["reason"],
         # }
+        # results.append(res)
+        # print(res)
 
         # Evaluate faithfulness using Groq as LLM judge
-        # faithfulness = evaluate_faithfulness(
-        #     question=test_case["question"],
-        #     retrieval_context=[doc.page_content for doc in response["relevant_chunks"]],
-        #     generated_answer=response["content"],
-        # )
-        # res = {
-        #     "id": test_case["id"],
-        #     "score":  faithfulness["score"],
-        #     "passed": faithfulness["passed"],
-        #     "reason": faithfulness["reason"],
-        # }
-        # results.append(res)
+        faithfulness = evaluate_faithfulness(
+            question=test_case["question"],
+            retrieval_context=[
+                doc.page_content for doc in response["relevant_chunks"]
+            ],
+            generated_answer=" ".join(
+                [texts["text"] for texts in response["content"]]
+            )
+        )
+        res = {
+            "id": test_case["id"],
+            "score":  faithfulness["score"],
+            "passed": faithfulness["passed"],
+            "reason": faithfulness["reason"],
+        }
+        results.append(res)
+        print(res)
 
+        # Evaluate retrieval using Groq as LLM judge
         # retrieval = evaluate_retrieval(
         #     question=test_case["question"],
         #     retrieval_context=[
-        #         doc.page_content for doc in response["relevant_chunks"]],
+        #         doc.page_content for doc in response["relevant_chunks"]
+        #     ],
         #     expected_answer=test_case["reference_answer"],
         # )
 
         # results.append(retrieval)
         # print(retrieval)
 
-        citation_accuracy = evaluate_citation_accuracy(
-            retriever_response=response
-        )
+        # Evaluate citation accuracy
+        # citation_accuracy = evaluate_citation_accuracy(
+        #     retriever_response=response
+        # )
 
-        results.append(citation_accuracy)
-        print("ID:", test_case["id"])
-        print(citation_accuracy)
-        print("--------------------------------------")
+        # results.append(citation_accuracy)
+        # print("ID:", test_case["id"])
+        # print(citation_accuracy)
+        # print("--------------------------------------")
 
-    return results
+    return generate_report(results)
 
 
 print("final=", run_evaluation())

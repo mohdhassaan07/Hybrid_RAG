@@ -22,6 +22,7 @@ from pypdf import PdfReader
 # PDF loader
 # ---------------------------------------------------------------------------
 
+
 def load_pdf(path: str) -> List[Document]:
     """Extract text from every page of a PDF.
 
@@ -37,6 +38,7 @@ def load_pdf(path: str) -> List[Document]:
         raw_text = page.extract_text() or ""
         section = _extract_section_heading(raw_text)
         clean_text = normalize(raw_text)
+        print("section --->", section)
 
         if not clean_text:
             continue  # skip blank pages
@@ -57,6 +59,7 @@ def load_pdf(path: str) -> List[Document]:
 # ---------------------------------------------------------------------------
 # Plain-text loader
 # ---------------------------------------------------------------------------
+
 
 def load_text(path: str) -> List[Document]:
     """Load a plain-text file and split it into logical page blocks.
@@ -141,16 +144,40 @@ def normalize(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 # Heading patterns evaluated top-to-bottom; first match wins.
+#
+# Priority order:
+#  1. Markdown   – explicit # / ## markers
+#  2. Project    – "PROJECT 1  ·  RAG" style lines (this document format)
+#  3. Phase      – "PHASE 1" / "PHASE 2" sub-section markers
+#  4. Numbered   – "1.2  Introduction" style academic sections
+#  5. ALL-CAPS   – short uppercase-only lines (generic fallback)
+#  6. Intro      – "Before you start" / "Introduction" style single-line headings
+#  7. Title-Case – short strictly title-cased lines (generic fallback)
 _HEADING_PATTERNS: list[tuple[str, re.Pattern]] = [
     # Markdown-style  # H1 / ## H2 …
     ("markdown",  re.compile(r"^#{1,6}\s+(.+)", re.MULTILINE)),
+    # "PROJECT 1   ·   RAG" or "PROJECT 1 - AGENTS" — full single line
+    ("project",   re.compile(
+        r"^(PROJECT\s+\d+\s*[\u00b7\u22c5|·\-\u2013\u2014]\s*[A-Z][^\n]{1,60})$",
+        re.MULTILINE,
+    )),
+    # "PHASE 1" or "PHASE 2" (just the label; drop any trailing text that
+    # bleeds onto the same line to keep the section name clean)
+    ("phase",     re.compile(
+        r"^(PHASE\s+\d+)\s*$", re.MULTILINE
+    )),
     # Numbered section  "1.2  Introduction" / "3. Results"
     ("numbered",  re.compile(
         r"^(\d+(?:\.\d+)*\.?\s{1,4}[A-Z][^\n]{2,60})$", re.MULTILINE
     )),
-    # ALL-CAPS short line  (3-80 chars, no sentence-ending punctuation mid-line)
-    ("allcaps",   re.compile(r"^([A-Z][A-Z\s\-:]{2,79})$", re.MULTILINE)),
-    # Title-Case line that is short and ends without sentence punctuation
+    # ALL-CAPS short line, allowing digits and · (e.g. "RAG", "AGENTS")
+    ("allcaps",   re.compile(r"^([A-Z][A-Z0-9\s\-:·]{2,79})$", re.MULTILINE)),
+    # Sentence-case intro heading: "Before you start", "Introduction", etc.
+    # Single line, 3-60 chars, starts with capital, no trailing sentence punct.
+    ("intro",     re.compile(
+        r"^([A-Z][a-z]{1,30}(?:\s[a-z]{1,20}){0,6})$", re.MULTILINE
+    )),
+    # Strictly Title-Case multi-word line (each word capitalised)
     ("titlecase", re.compile(
         r"^([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,10})$", re.MULTILINE
     )),
@@ -160,8 +187,9 @@ _HEADING_PATTERNS: list[tuple[str, re.Pattern]] = [
 def _extract_section_heading(raw_text: str) -> str:
     """Return the *first* plausible section heading found in *raw_text*.
 
-    Uses the un-normalised text so casing is intact for all pattern matches.
-    Returns an empty string when no heading is detected.
+    Checks patterns in priority order (Markdown → Project → Phase → Numbered
+    → ALL-CAPS → Intro → Title-Case).  Uses the un-normalised text so casing
+    is intact.  Returns an empty string when no heading is detected.
     """
     for _name, pattern in _HEADING_PATTERNS:
         match = pattern.search(raw_text)
@@ -173,6 +201,7 @@ def _extract_section_heading(raw_text: str) -> str:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def load_document(path: str) -> List[Document]:
     """Load *path* and return a list of normalised LangChain Documents.

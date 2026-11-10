@@ -13,7 +13,8 @@ class GroqJudge(DeepEvalBaseLLM):
         self.model_name = model
         api_key = os.environ.get("GROQ_API_KEY")
         self._client = OpenAI(api_key=api_key, base_url=GROQ_BASE_URL)
-        self._async_client = AsyncOpenAI(api_key=api_key, base_url=GROQ_BASE_URL)
+        self._async_client = AsyncOpenAI(
+            api_key=api_key, base_url=GROQ_BASE_URL)
 
     def load_model(self):
         return self._client
@@ -39,7 +40,7 @@ class GroqJudge(DeepEvalBaseLLM):
 
 
 def evaluate_correctness(
-    question:str,
+    question: str,
     reference_answer: str,
     generated_answer: str,
     groq_model: str = "openai/gpt-oss-120b",
@@ -82,7 +83,7 @@ def evaluate_correctness(
     metric.measure(test_case)
 
     return {
-        
+
         "score": metric.score,
         "passed": metric.is_successful(),
         "reason": metric.reason,
@@ -92,12 +93,9 @@ def evaluate_correctness(
 if __name__ == "__main__":
     result = evaluate_correctness(
         question="How does Project 6 turn a security failure into a regression test, and how is continued improvement demonstrated?",
-        reference_answer=
-            "A confirmed failure is filed with a minimal reproduction, payload, response, and suggested mitigation. After the fix, that finding remains permanently in the suite as a regression case. The dashboard tracks pass rate by attack category and regression count, and the next scheduled run demonstrates that the vulnerability stays closed."
-        ,
-        generated_answer=
-            "Project 6 converts any confirmed security failure into a lasting regression test by first generating a detailed finding – including a minimal reproduction, the exact payload, the response, and a mitigation – and opening a GitHub issue (1). After the fix is applied, the finding is never removed; instead it is added to the permanent regression suite so future runs automatically verify the vulnerability stays closed (1). Continued improvement is shown through scheduled runs that feed a dashboard tracking metrics such as findings by severity over time, mean time to close, pass rate by attack category, and a regression count that must remain zero. The demo’s closed‑loop – a vulnerability discovered, a fix shipped, and a subsequent run confirming the issue stays resolved – provides a clear trend line of improving pass rates and zero regressions (1).",
-        
+        reference_answer="A confirmed failure is filed with a minimal reproduction, payload, response, and suggested mitigation. After the fix, that finding remains permanently in the suite as a regression case. The dashboard tracks pass rate by attack category and regression count, and the next scheduled run demonstrates that the vulnerability stays closed.",
+        generated_answer="Project 6 converts any confirmed security failure into a lasting regression test by first generating a detailed finding – including a minimal reproduction, the exact payload, the response, and a mitigation – and opening a GitHub issue (1). After the fix is applied, the finding is never removed; instead it is added to the permanent regression suite so future runs automatically verify the vulnerability stays closed (1). Continued improvement is shown through scheduled runs that feed a dashboard tracking metrics such as findings by severity over time, mean time to close, pass rate by attack category, and a regression count that must remain zero. The demo’s closed‑loop – a vulnerability discovered, a fix shipped, and a subsequent run confirming the issue stays resolved – provides a clear trend line of improving pass rates and zero regressions (1).",
+
     )
 
     print(f"Score  : {result['score']:.2f}")

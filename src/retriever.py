@@ -83,7 +83,7 @@ def reciprocal_rank_fusion(rankings, k=60):
 
 def hybrid_retriever(
     query: str,
-    k: int = 6,
+    k: int = 3,
     rerank_top_n: int = 20,
 ):
     """
@@ -176,14 +176,18 @@ def cross_encoder_reranker(query, chunks):
 
 def ask_query(query):
     hybrid_results = hybrid_retriever(query)
-    reranked_results = cross_encoder_reranker(query, hybrid_results)
+    # reranked_results = cross_encoder_reranker(query, hybrid_results)
     context = "\n\n".join(
         f"[{index}] {doc.page_content}"
-        for index, doc in enumerate(reranked_results, start=1)
+        for index, doc in enumerate(hybrid_results, start=1)
     )
     system_prompt = f"""
     You are a helpful AI assistant who gives answers from the given context only.
     context : {context}
+    - Use only information present in the context. Do not add outside knowledge.
+    - Answer thouroghly: Identify every distinct part of the question and cover each one, and include all the relevant points the context provides for answering it.
+    - If done question has multiple parts or the concept has multiple components, address all of them rather than stopping at the first.
+    - Do not pad the answer with unrelated information or repeat yourself to see more complete - cover what the question needs, then stop
 
     CITATION RULES:
     1. Every factual claim must have at least one citation.
@@ -242,11 +246,11 @@ def ask_query(query):
         int(number)
         for number in res.get("citations", [])
         if isinstance(number, int)
-        and 1 <= number <= len(reranked_results)
+        and 1 <= number <= len(hybrid_results)
     }
     citations = []
     for number in sorted(used_numbers):
-        doc = reranked_results[number - 1]
+        doc = hybrid_results[number - 1]
         metadata = doc.metadata
 
         citations.append({
@@ -267,12 +271,12 @@ def ask_query(query):
             "relevant_fragments": res["relevant_fragments"],
             "missing_information": res["missing_information"],
             "citations": citations,
-            "relevant_chunks": reranked_results
+            "relevant_chunks": hybrid_results
         }
 
     return {
         "content": res["content"],
         "confidence_score": res["confidence_score"],
         "citations": citations,
-        "relevant_chunks": reranked_results
+        "relevant_chunks": hybrid_results
     }
