@@ -2,13 +2,15 @@ import pickle
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import List
 from dotenv import load_dotenv
 from langchain_community.retrievers import BM25Retriever
+from langchain_core.documents import Document
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
 from src.chunker import chunk_docs
-from src.document_loader import load_document
+from src.document_loader import load_document, normalize, _extract_section_heading
 
 load_dotenv()
 
@@ -62,19 +64,23 @@ def drop_near_duplicates(chunks, vector_store, embeddings):
     return accepted
 
 
-def ingest(pdf_path: str):
-    # accepts pdf or text from user input
+def _ingest_docs(docs: List[Document]) -> dict:
+    """Shared indexing logic for both file and raw-text ingestion paths.
 
-    # pdf_path = Path(__file__).parent.parent / "six_projects-1-8.pdf"
+    Takes already-loaded Documents, chunks them, deduplicates against the
+    existing Qdrant collection, assigns deterministic IDs, and upserts into
+    both Qdrant (dense) and BM25 (sparse).
+
+    Returns:
+        A dict with ``indexed`` (number of new chunks added) and ``message``.
+    """
     bm25_save_path = Path(__file__).parent.parent / "bm25_index.pkl"
 
-    # 1. Load document
-    docs = load_document(str(pdf_path))
-
-    # 2. Chunk documents
+    # 1. Chunk
     fixed_size_chunks, markdown_chunks = chunk_docs(docs)
     all_chunks = fixed_size_chunks + markdown_chunks
 
+    # 2. Deduplicate against existing index
     client = QdrantClient(url="http://localhost:6333")
     existing_collections = [
         c.name for c in client.get_collections().collections]
@@ -86,34 +92,61 @@ def ingest(pdf_path: str):
         )
         all_chunks = drop_near_duplicates(
             all_chunks, existing_store, embeddings)
-    else:
-        pass
 
     if not all_chunks:
         print("All chunks are duplicates of existing documents. Nothing new to index.")
-        return
+        return {"indexed": 0, "message": "All chunks are duplicates. Nothing new to index."}
 
-    # 3. Assign deterministic unique IDs so dense and sparse indexes stay in sync
+    # 3. Deterministic IDs
     for idx, chunk in enumerate(all_chunks):
         chunk_id = str(uuid.uuid5(
             uuid.NAMESPACE_DNS,
-            f"{chunk.metadata.get('source')}_{chunk.metadata.get('chunking_strategy')}_{chunk.metadata.get('chunk_index', idx)}"
+            f"{chunk.metadata.get('source')}_{chunk.metadata.get('chunking_strategy')}_{chunk.metadata.get('chunk_index', idx)}",
         ))
         chunk.id = chunk_id
         chunk.metadata["id"] = chunk_id
 
+    # 4. Index in parallel
     print(
         f"Indexing {len(all_chunks)} chunks into Qdrant and BM25 concurrently...")
-
-    # 4. Build both indexes in parallel
     with ThreadPoolExecutor(max_workers=2) as executor:
         qdrant_future = executor.submit(
             build_qdrant_index, all_chunks, embeddings)
         bm25_future = executor.submit(
             build_bm25_index, all_chunks, bm25_save_path)
-
-        vector_store = qdrant_future.result()
-        bm25_retriever = bm25_future.result()
+        qdrant_future.result()
+        bm25_future.result()
 
     print("Vector store and BM25 index built in parallel and synchronized successfully!")
     print(f"BM25 index saved to: {bm25_save_path}")
+    return {"indexed": len(all_chunks), "message": "Indexed successfully."}
+
+
+def ingest(pdf_path: str):
+    """Ingest a PDF or .txt file by path."""
+    docs = load_document(str(pdf_path))
+    _ingest_docs(docs)
+
+
+def ingest_text(text: str, source_label: str = "inline_text") -> dict:
+    """Ingest a raw text string directly (no file needed).
+
+    Args:
+        text:         The raw text content to index.
+        source_label: An identifier stored in chunk metadata as ``source``.
+                      Defaults to ``"inline_text"``; pass a document title or
+                      any descriptive name so retrieved chunks are traceable.
+
+    Returns:
+        A dict with ``indexed`` (chunk count) and ``message``.
+    """
+    clean = normalize(text)
+    # use raw text for heading detection
+    section = _extract_section_heading(text)
+    docs = [
+        Document(
+            page_content=clean,
+            metadata={"source": source_label, "page": 1, "section": section},
+        )
+    ]
+    return _ingest_docs(docs)
