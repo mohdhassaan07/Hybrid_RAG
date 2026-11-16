@@ -1,11 +1,13 @@
+
 # online/triad_worker.py
+
 import asyncio
+import os
+import logging
 from dotenv import load_dotenv
+
 from langsmith import AsyncClient
-try:
-    from .correctness import GroqJudge
-except ImportError:
-    from correctness import GroqJudge
+
 from deepeval.test_case import LLMTestCase
 from deepeval.metrics import (
     FaithfulnessMetric,
@@ -13,123 +15,322 @@ from deepeval.metrics import (
     ContextualRelevancyMetric,
 )
 
+try:
+    from .correctness import GroqJudge
+except ImportError:
+    from correctness import GroqJudge
+
+
 load_dotenv()
 
-PROJECT = "hybrid-rag-local"
-JUDGE_MODEL = GroqJudge(model="openai/gpt-oss-120b")
+# ---------------- CONFIGURATION ----------------
+
+PROJECT_ID = "01a1d97b-7e3c-72a2-b5c9-959c8283f623"
+
 THRESHOLD = 0.7
-SAMPLE_RATE = 1          # ~30% of traffic — 3 metrics × several calls each = expensive
+SAMPLE_RATE = 1.0       # 1.0 = 100%, 0.3 = 30%
 POLL_SECONDS = 60
 
-# runs.query() returns an AsyncPaginator — use AsyncClient throughout
+JUDGE_MODEL = GroqJudge(model="openai/gpt-oss-120b")
+
 client = AsyncClient()
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
 
-def _sampled(run):
-    """Deterministic per-run sampling: same run always decided the same way."""
-    return hash(str(run.id)) % 100 < SAMPLE_RATE * 100
-
-
-async def _existing_keys(run):
-    """Which feedback keys this run already has — so we never re-judge a key."""
-    fb = client.list_feedback(run_ids=[run.id])
-    return {f.key async for f in fb}
+logger = logging.getLogger(__name__)
 
 
-async def score_recent_traces():
-    """One pass: read recent RagPipeline traces, score any missing triad metric, push feedback."""
-    runs = client.runs.query(
-        project_ids=["01a1d97b-7e3c-72a2-b5c9-959c8283f623"],
-        filter='and(eq(run_type, "chain"), eq(status, "success"))',
+# ---------------- SAMPLING ----------------
+
+def sampled(run_id):
+    """Deterministic sampling for each trace."""
+    import hashlib
+
+    value = int(
+        hashlib.md5(str(run_id).encode()).hexdigest(),
+        16
     )
 
-    async for run_summary in runs:
-        # root-run guard: skip child spans (execution_order not supported in v2 filter)
-        if run_summary.parent_run_ids is not None:
-            continue
+    return value % 10000 < SAMPLE_RATE * 10000
 
-        if not _sampled(run_summary):
-            continue
 
-        # runs.query() returns lightweight summaries — outputs are empty.
-        # Fetch the full run object to get inputs/outputs.
-        run = await client.runs.retrieve(str(run_summary.id))
-        outputs = run.outputs or {}
+# ---------------- EXISTING FEEDBACK ----------------
 
-        # ask_query() returns "content" (the answer) and "relevant_chunks" (context docs)
-        raw_answer = outputs.get("content")
-        raw_chunks = outputs.get("relevant_chunks", [])
-        query = (run.inputs or {}).get("query", "")
+async def existing_feedback(run_id):
+    """Get existing metric keys to prevent duplicate evaluations."""
 
-        # "content" can be a list of citation dicts or a plain string
-        if isinstance(raw_answer, list):
-            answer = " ".join(
-                item.get("text", "") if isinstance(item, dict) else str(item)
-                for item in raw_answer
+    feedback = client.list_feedback(
+        run_ids=[str(run_id)]
+    )
+
+    return {
+        item.key
+        async for item in feedback
+    }
+
+
+# ---------------- OUTPUT EXTRACTION ----------------
+
+def extract_answer(raw_answer):
+
+    if isinstance(raw_answer, str):
+        return raw_answer
+
+    if isinstance(raw_answer, list):
+        parts = []
+
+        for item in raw_answer:
+            if isinstance(item, dict):
+                parts.append(str(item.get("text", "")))
+            else:
+                parts.append(str(item))
+
+        return " ".join(parts)
+
+    return str(raw_answer) if raw_answer else ""
+
+
+def extract_context(raw_chunks):
+
+    if not raw_chunks:
+        return []
+
+    context = []
+
+    for chunk in raw_chunks:
+
+        if isinstance(chunk, dict):
+            content = (
+                chunk.get("page_content")
+                or chunk.get("text")
+                or ""
             )
+
+        elif hasattr(chunk, "page_content"):
+            content = chunk.page_content
+
         else:
-            answer = raw_answer
+            content = str(chunk)
 
-        # DeepEval expects retrieval_context as list[str]
-        if raw_chunks and isinstance(raw_chunks[0], dict):
-            # serialised Document dicts
-            context = [c.get("page_content", "") for c in raw_chunks]
-        elif raw_chunks and hasattr(raw_chunks[0], "page_content"):
-            # LangChain Document objects
-            context = [c.page_content for c in raw_chunks]
-        else:
-            context = [str(c) for c in raw_chunks]
+        if content:
+            context.append(str(content))
 
-        if not answer or not context:
-            print(
-                f"[skip] run {run.id} — missing answer or context (outputs keys: {list(outputs.keys())})")
-            continue                          # nothing to judge
+    return context
 
-        already = await _existing_keys(run)
 
-        # each metric: (feedback key, metric object, which inputs it needs)
-        # built fresh per run so scores/reasons don't leak between traces
-        jobs = [
-            ("faithfulness",
-             FaithfulnessMetric(threshold=THRESHOLD,
-                                model=JUDGE_MODEL, include_reason=True),
-             dict(input=query, actual_output=answer, retrieval_context=context)),
+# ---------------- METRIC EVALUATION ----------------
 
-            ("answer_relevancy",
-             AnswerRelevancyMetric(threshold=THRESHOLD,
-                                   model=JUDGE_MODEL, include_reason=True),
-             dict(input=query, actual_output=answer)),
+async def evaluate_metric(
+    run_id,
+    key,
+    metric,
+    test_case
+):
+    """Evaluate one metric and attach its score to LangSmith."""
 
-            ("contextual_relevancy",
-             ContextualRelevancyMetric(
-                 threshold=THRESHOLD, model=JUDGE_MODEL, include_reason=True),
-             dict(input=query, actual_output=answer, retrieval_context=context)),
-        ]
+    try:
 
-        for key, metric, tc_kwargs in jobs:
-            if key in already:
-                continue                      # per-key dedup: skip only what's already scored
+        # DeepEval measure() is synchronous.
+        # Run it in a worker thread to avoid blocking asyncio.
+        await asyncio.to_thread(
+            metric.measure,
+            test_case
+        )
+
+        score = metric.score
+        reason = metric.reason
+
+        if score is None:
+            raise ValueError("DeepEval returned an empty score")
+
+        await client.create_feedback(
+            run_id=str(run_id),
+            session_id=PROJECT_ID,
+            key=key,
+            score=float(score),
+            comment=str(reason or ""),
+        )
+
+        logger.info(
+            "[SUCCESS] %s | Run: %s | Score: %.4f",
+            key,
+            run_id,
+            score
+        )
+
+    except Exception:
+        logger.exception(
+            "[FAILED] %s | Run: %s",
+            key,
+            run_id
+        )
+
+
+# ---------------- PROCESS ONE TRACE ----------------
+
+async def process_trace(run):
+
+    run_id = run.id
+
+    if not sampled(run_id):
+        return
+
+    inputs = run.inputs or {}
+    outputs = run.outputs or {}
+
+    query = (
+        inputs.get("query")
+        or inputs.get("question")
+        or ""
+    )
+
+    raw_answer = outputs.get("content")
+    raw_chunks = outputs.get("relevant_chunks", [])
+
+    answer = extract_answer(raw_answer)
+    context = extract_context(raw_chunks)
+
+    if not query or not answer or not context:
+
+        logger.warning(
+            "[SKIPPED] Run %s | query=%s | answer=%s | context_chunks=%s | output_keys=%s",
+            run_id,
+            bool(query),
+            bool(answer),
+            len(context),
+            list(outputs.keys())
+        )
+
+        return
+
+    # Check which metrics have already been evaluated.
+    already = await existing_feedback(run_id)
+
+    test_case = LLMTestCase(
+        input=query,
+        actual_output=answer,
+        retrieval_context=context
+    )
+
+    # Create fresh metric instances for each run.
+    jobs = {
+
+        "faithfulness": FaithfulnessMetric(
+            threshold=THRESHOLD,
+            model=JUDGE_MODEL,
+            include_reason=True,
+        ),
+
+        "answer_relevancy": AnswerRelevancyMetric(
+            threshold=THRESHOLD,
+            model=JUDGE_MODEL,
+            include_reason=True,
+        ),
+
+        "contextual_relevancy": ContextualRelevancyMetric(
+            threshold=THRESHOLD,
+            model=JUDGE_MODEL,
+            include_reason=True,
+        ),
+    }
+
+    for key, metric in jobs.items():
+
+        if key in already:
+            logger.info(
+                "[EXISTS] %s | Run: %s",
+                key,
+                run_id
+            )
+            continue
+
+        await evaluate_metric(
+            run_id=run_id,
+            key=key,
+            metric=metric,
+            test_case=test_case
+        )
+
+
+# ---------------- FETCH RECENT TRACES ----------------
+
+async def score_recent_traces():
+
+    logger.info("Fetching recent LangSmith traces...")
+
+    # IMPORTANT:
+    # The v2 query API returns an async paginator.
+    # Await the query before iterating.
+
+    runs = await client.runs.query(
+        project_ids=[PROJECT_ID],
+
+        is_root=True,
+
+        filter='eq(run_type, "CHAIN")',
+
+        selects=[
+            "ID",
+            "RUN_TYPE",
+            "STATUS",
+            "INPUTS",
+            "OUTPUTS",
+            "TRACE_ID",
+        ],
+
+        page_size=100,
+    )
+
+    count = 0
+
+    async for run in runs:
+
+        count += 1
+
+        try:
+            await process_trace(run)
+
+        except Exception:
+            logger.exception(
+                "Unexpected error processing run %s",
+                run.id
+            )
+
+    logger.info(
+        "Finished evaluation. Traces processed: %s",
+        count
+    )
+
+
+# ---------------- WORKER LOOP ----------------
+
+async def main():
+
+    logger.info("DeepEval + LangSmith worker started.")
+
+    try:
+
+        while True:
 
             try:
-                metric.measure(LLMTestCase(**tc_kwargs))
-                await client.create_feedback(
-                    run_id=run.id,
-                    key=key,
-                    score=metric.score,
-                    comment=metric.reason,
-                )
-            except Exception as e:
-                # one metric failing shouldn't sink the other two for this trace
-                print(f"[{key}] failed on run {run.id}: {e}")
+                await score_recent_traces()
+
+            except Exception:
+                logger.exception("Worker iteration failed")
+
+            await asyncio.sleep(POLL_SECONDS)
+
+    finally:
+        await client.aclose()
 
 
 if __name__ == "__main__":
-    # live-in-a-terminal version. For production, delete the loop and let cron
-    # call score_recent_traces() on a schedule instead.
-    async def _loop():
-        while True:
-            print("evaluating...")
-            await score_recent_traces()
-            await asyncio.sleep(POLL_SECONDS)
 
-    asyncio.run(_loop())
+    try:
+        asyncio.run(main())
+
+    except KeyboardInterrupt:
+        logger.info("Worker stopped.")

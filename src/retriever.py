@@ -85,7 +85,7 @@ def reciprocal_rank_fusion(rankings, k=60):
 @traceable(name="hybrid_retriever", run_type="retriever")
 def hybrid_retriever(
     query: str,
-    k: int = 3,
+    k: int = 6,
     rerank_top_n: int = 20,
 ):
     """
@@ -179,10 +179,10 @@ def cross_encoder_reranker(query, chunks):
 @traceable
 def ask_query(query):
     hybrid_results = hybrid_retriever(query)
-    # reranked_results = cross_encoder_reranker(query, hybrid_results)
+    reranked_results = cross_encoder_reranker(query, hybrid_results)
     context = "\n\n".join(
         f"[{index}] {doc.page_content}"
-        for index, doc in enumerate(hybrid_results, start=1)
+        for index, doc in enumerate(reranked_results, start=1)
     )
     system_prompt = f"""
     You are a helpful AI assistant who gives answers from the given context only.
@@ -251,11 +251,11 @@ def ask_query(query):
         int(number)
         for number in res.get("citations", [])
         if isinstance(number, int)
-        and 1 <= number <= len(hybrid_results)
+        and 1 <= number <= len(reranked_results)
     }
     citations = []
     for number in sorted(used_numbers):
-        doc = hybrid_results[number - 1]
+        doc = reranked_results[number - 1]
         metadata = doc.metadata
 
         citations.append({
@@ -276,14 +276,14 @@ def ask_query(query):
             "relevant_fragments": res["relevant_fragments"],
             "missing_information": res["missing_information"],
             "citations": citations,
-            "relevant_chunks": hybrid_results
+            "relevant_chunks": reranked_results
         }
 
     return {
         "content": res["content"],
         "confidence_score": res["confidence_score"],
         "citations": citations,
-        "relevant_chunks": hybrid_results
+        "relevant_chunks": reranked_results
     }
 
 
