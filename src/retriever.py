@@ -151,7 +151,7 @@ def cross_encoder_reranker(query, chunks):
     2. chunk: {chunk.page_content}
     """
         res = client.chat.completions.create(
-            model="openai/gpt-oss-20b",
+            model="openai/gpt-oss-120b",
             messages=[
                 {
                     "role": "system",
@@ -164,7 +164,7 @@ def cross_encoder_reranker(query, chunks):
             ]
         )
         relevence = res.choices[0].message.content.strip()
-        scores[chunk.id] = relevence
+        scores[chunk.metadata['id']] = float(relevence)
 
     reranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
     reranked_docs = []
@@ -180,6 +180,7 @@ def cross_encoder_reranker(query, chunks):
 def ask_query(query):
     hybrid_results = hybrid_retriever(query)
     reranked_results = cross_encoder_reranker(query, hybrid_results)
+
     context = "\n\n".join(
         f"[{index}] {doc.page_content}"
         for index, doc in enumerate(reranked_results, start=1)
