@@ -1,9 +1,9 @@
 import pickle
+import os
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import List
-from dotenv import load_dotenv
 from langchain_community.retrievers import BM25Retriever
 from langchain_core.documents import Document
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -11,14 +11,20 @@ from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
 from src.chunker import chunk_docs
 from src.document_loader import load_document, normalize, _extract_section_heading
+from dotenv import load_dotenv
 
 load_dotenv()
 
 collection_name = "hybrid_rag2"
 embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2-preview")
 
+QDRANT_URL = os.getenv(
+    "QDRANT_URL",
+    "http://localhost:6333"
+)
 
-def build_qdrant_index(chunks, embeddings, collection_name=collection_name, url="http://localhost:6333"):
+
+def build_qdrant_index(chunks, embeddings, collection_name=collection_name, url=QDRANT_URL):
     """Build or update the dense Qdrant vector store with explicit chunk IDs."""
     ids = [chunk.id for chunk in chunks]
     return QdrantVectorStore.from_documents(
@@ -74,21 +80,29 @@ def _ingest_docs(docs: List[Document]) -> dict:
     Returns:
         A dict with ``indexed`` (number of new chunks added) and ``message``.
     """
-    bm25_save_path = Path(__file__).parent.parent / "bm25_index.pkl"
+    BM25_INDEX_PATH = Path(
+        os.getenv("BM25_INDEX_PATH", "bm25_index.pkl")
+    )
+
+    bm25_save_path = BM25_INDEX_PATH
+    bm25_save_path.parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
     # 1. Chunk
     fixed_size_chunks, markdown_chunks = chunk_docs(docs)
     all_chunks = fixed_size_chunks + markdown_chunks
 
     # 2. Deduplicate against existing index
-    client = QdrantClient(url="http://localhost:6333")
+    client = QdrantClient(url=QDRANT_URL)
     existing_collections = [
         c.name for c in client.get_collections().collections]
     if collection_name in existing_collections:
         existing_store = QdrantVectorStore.from_existing_collection(
             collection_name=collection_name,
             embedding=embeddings,
-            url="http://localhost:6333",
+            url=QDRANT_URL,
         )
         all_chunks = drop_near_duplicates(
             all_chunks, existing_store, embeddings)

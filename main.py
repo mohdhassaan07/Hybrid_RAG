@@ -1,6 +1,6 @@
-from src.routes.ask import router as ask_router
-from fastapi import FastAPI
 from src.routes.ingest import router as ingest_router
+from fastapi import FastAPI
+from src.routes.ask import router as ask_router
 from dotenv import load_dotenv
 load_dotenv()
 

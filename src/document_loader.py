@@ -38,7 +38,6 @@ def load_pdf(path: str) -> List[Document]:
         raw_text = page.extract_text() or ""
         section = _extract_section_heading(raw_text)
         clean_text = normalize(raw_text)
-        print("section --->", section)
 
         if not clean_text:
             continue  # skip blank pages
