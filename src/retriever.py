@@ -10,7 +10,16 @@ from groq import Groq
 import json
 from langsmith import traceable
 load_dotenv()
+
+# langchain-google-genai reads GOOGLE_API_KEY; alias GEMINI_API_KEY if set
+if not os.getenv("GOOGLE_API_KEY") and os.getenv("GEMINI_API_KEY"):
+    os.environ["GOOGLE_API_KEY"] = os.environ["GEMINI_API_KEY"]
+
 embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2-preview")
+
+QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+BM25_INDEX_PATH = Path(os.getenv("BM25_INDEX_PATH", "bm25_index.pkl"))
+COLLECTION_NAME = "hybrid_rag2"
 
 
 STOP_WORDS = {
@@ -31,9 +40,9 @@ def tokenize(text: str) -> list[str]:
 
 def qdrant_retriever(query: str):
     vector_store = QdrantVectorStore.from_existing_collection(
-        collection_name="hybrid_rag",
+        collection_name=COLLECTION_NAME,
         embedding=embeddings,
-        url="http://localhost:6333",
+        url=QDRANT_URL,
     )
     return vector_store.similarity_search(query, k=5)
 
@@ -45,9 +54,7 @@ def bm25_retriever(
     required_terms: set[str] | None = None,
 ):
     """Return only positively-scored keyword matches from bm25_index.pkl."""
-    index_path = Path(__file__).parent.parent / "bm25_index.pkl"
-
-    with open(index_path, "rb") as file:
+    with open(BM25_INDEX_PATH, "rb") as file:
         saved_index = pickle.load(file)
 
     chunks = saved_index.docs
@@ -163,8 +170,16 @@ def cross_encoder_reranker(query, chunks):
                 }
             ]
         )
-        relevence = res.choices[0].message.content.strip()
-        scores[chunk.metadata['id']] = float(relevence)
+        raw = res.choices[0].message.content.strip()
+
+        # Robustly extract first number 1-5 (handles "3/5", "Score: 4", empty, etc.)
+        match = re.search(r"\b([1-5](?:\.\d+)?)\b", raw)
+        try:
+            relevence = float(match.group(1)) if match else 1.0
+        except (ValueError, AttributeError):
+            relevence = 1.0  # default to lowest score on parse failure
+
+        scores[chunk.metadata['id']] = relevence
 
     reranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
     reranked_docs = []

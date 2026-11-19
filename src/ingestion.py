@@ -15,7 +15,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-collection_name = "hybrid_rag2"
+# langchain-google-genai reads GOOGLE_API_KEY; alias GEMINI_API_KEY if set
+if not os.getenv("GOOGLE_API_KEY") and os.getenv("GEMINI_API_KEY"):
+    os.environ["GOOGLE_API_KEY"] = os.environ["GEMINI_API_KEY"]
+
+collection_name = "hybrid_rag"
 embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2-preview")
 
 QDRANT_URL = os.getenv(

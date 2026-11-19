@@ -24,7 +24,7 @@ services:
 
   api:
     build: .
-    command: uvicorn YOUR_API_MODULE:app --host 0.0.0.0 --port 8000
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     environment:
@@ -41,11 +41,17 @@ services:
 
   frontend:
     build: .
-    command: streamlit run YOUR_STREAMLIT_FILE.py --server.address 0.0.0.0 --server.port 8501
+    command: streamlit run dashboard.py --server.address 0.0.0.0 --server.port 8501
     ports:
       - "8501:8501"
     environment:
       API_BASE_URL: http://api:8000
+      QDRANT_URL: http://qdrant:6333
+      BM25_INDEX_PATH: /app/data/bm25_index.pkl
+    env_file:
+      - .env
+    volumes:
+      - bm25_data:/app/data
     depends_on:
       - api
     restart: unless-stopped
